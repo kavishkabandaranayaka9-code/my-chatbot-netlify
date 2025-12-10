@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>REAL CHAT V.1</title>
+    
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+
+    <style>
+        /* Base Settings */
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #e0e0e0;
+        }
+
+        .chat-container {
+            width: 100%;
+            height: 100%;
+            background-color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        /* Animation: Smooth Transitions */
+        .chat-container, .chat-header, .sidebar {
+            transition: all 0.3s ease-in-out;
+        }
+        
+        /* Message Animation */
+        .message {
+            opacity: 0;
+            transform: translateY(10px);
+            animation: fadeInMessage 0.3s ease-out forwards;
+        }
+
+        @keyframes fadeInMessage {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* Header Styling */
+        .chat-header {
+            background-color: #000000;
+            color: #ffffff;
+            padding: 15px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 18px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .menu-icon {
+            cursor: pointer;
+            padding: 0 5px;
+            font-size: 24px;
+        }
+
+        /* Sidebar Styling */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 280px;
+            height: 100%;
+            background-color: #1a1a1a;
+            color: #ffffff;
+            z-index: 100;
+            padding: 20px;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.5);
+            transform: translateX(-100%);
+        }
+
+        .sidebar.open {
+            transform: translateX(0);
+        }
+
+        .sidebar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 10px;
+        }
+
+        .close-btn {
+            cursor: pointer;
+            font-size: 24px;
+            color: #ffffff;
+        }
+
+        .sidebar-item {
+            padding: 10px;
+            cursor: pointer;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            background-color: #2c2c2c;
+        }
+        .sidebar-item:hover {
+            background-color: #444444;
+        }
+
+        /* Overlay Styling */
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 90;
+        }
+        .overlay.active {
+            display: block;
+        }
+        
+        .chat-messages {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            background-color: #f5f5f5;
+        }
+
+        /* Initial Branding Message */
+        #initial-message {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            flex-grow: 1;
+            text-align: center;
+            font-size: 30px;
+            color: #000000;
+            font-weight: 700;
+            opacity: 1;
+            transition: opacity 0.5s;
+        }
+        #initial-message.hidden {
+            display: none;
+            opacity: 0;
+        }
+        #initial-message small {
+            font-size: 16px;
+            font-weight: 400;
+            color: #666;
+            margin-top: 10px;
+        }
+
+        /* Message Bubble and Copy Styling */
+        .message {
+            padding: 10px 15px;
+            border-radius: 18px;
+            max-width: 80%;
+            line-height: 1.5;
+            word-wrap: break-word;
+            cursor: copy;
+            position: relative;
+        }
+
+        .message::after {
+            content: 'Copied!';
+            position: absolute;
+            bottom: 100%;
+            right: 10px;
+            background: #000000;
+            color: #ffffff;
+            padding: 4px 8px;
+            border-radius: 5px;
+            font-size: 12px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+        .message.copied::after {
+            opacity: 1;
+        }
+
+        .message.user {
+            background-color: #333333;
+            color: #ffffff;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.bot {
+            background-color: #dddddd;
+            color: #000000;
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+
+        /* Input Form Styling */
+        .chat-input-form {
+            display: flex;
+            padding: 10px;
+            border-top: 1px solid #cccccc;
+            background-color: #ffffff;
+            flex-shrink: 0;
+        }
+
+        #message-input {
+            flex-grow: 1;
+            border: 1px solid #cccccc;
+            border-radius: 20px;
+            padding: 10px 15px;
+            font-size: 16px;
+            outline: none;
+            background-color: #f0f0f0;
+        }
+        #message-input:focus {
+            border-color: #000000;
+            background-color: #ffffff;
+        }
+
+        #send-button {
+            background-color: #000000;
+            color: #ffffff;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            margin-left: 10px;
+            cursor: pointer;
+            font-size: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: background-color 0.2s;
+        }
+        #send-button:hover {
+            background-color: #444444;
+        }
+        
+        /* Responsive Design */
+        @media (min-width: 600px) {
+            .chat-container {
+                width: 450px;
+                height: 80vh;
+                max-height: 700px;
+                border-radius: 10px;
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+                margin: 50px auto;
+            }
+
+            .sidebar, .overlay {
+                position: absolute;
+                height: 100%;
+                border-radius: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="overlay" id="overlay"></div>
+
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <h3>Menu Options</h3>
+            <i class="material-icons close-btn" id="close-sidebar-btn">close</i>
+        </div>
+        <div class="sidebar-item" id="new-chat-btn">Start New Chat</div>
+        <div class="sidebar-item">Settings</div>
+        <div class="sidebar-item">History</div>
+    </div>
+
+    <div class="chat-container">
+        <div class="chat-header">
+            <i class="material-icons menu-icon" id="open-sidebar-btn">menu</i>
+            <span>REAL CHAT V.1</span>
+            <div style="width: 24px;"></div>
+        </div>
+
+        <div id="initial-message">
+            REAL CHAT V.1
+            <small>AI Powered</small>
+        </div>
+
+        <div class="chat-messages" id="chat-messages">
+        </div>
+        <form class="chat-input-form" id="chat-form">
+            <input type="text" id="message-input" placeholder="Type a message..." autocomplete="off">
+            <button type="submit" id="send-button">➤</button>
+        </form>
+    </div>
+
+    <script>
+        // API Key and URL (Cerebras name is only here as the API endpoint requires it)
+        const CEREBRAS_API_KEY = "csk-ek3cx2dkp3c44vrvyp5f9jcwk93fhc5jv8fjdh2v4m33346j";
+        const API_URL = 'https://api.cerebras.ai/v1/chat/completions';
+        
+        // DOM Elements
+        const chatForm = document.getElementById('chat-form' );
+        const messageInput = document.getElementById('message-input');
+        const chatMessages = document.getElementById('chat-messages');
+        const initialMessage = document.getElementById('initial-message');
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('overlay');
+        const openSidebarBtn = document.getElementById('open-sidebar-btn');
+        const closeSidebarBtn = document.getElementById('close-sidebar-btn');
+        const newChatBtn = document.getElementById('new-chat-btn');
+        const sendButton = document.getElementById('send-button');
+
+        // Conversation State
+        // System Prompt is now instructed to speak in English and avoid creator keywords.
+        let conversationHistory = [{ role: "system", content: "You are a helpful AI assistant speaking in English. Never mention who created you or any technical model names (LLM, Large Language, etc.) in your answer. Keep your answers brief." }];
+        let chatStarted = false;
+
+        // =========================================================================
+        // 1. Hardcoded Response Logic (Creator Secrecy)
+        // =========================================================================
+        const creatorQuestionRegex = [
+            // Sinhala phrases related to 'who made you'
+            /^(ඔයා කවුද හැදුවේ|කවුද ඔයා හැදුවේ|ඔයාව හැදුවේ කවුද|ඔයාව හැදුවෙ කවුද|කවුද හැදුවෙ|නිර්මාණය කළේ කවුද)\s*$/i,
+            
+            // English phrases related to 'who made you'
+            /^(who made you|who made with you|who is your creator|who built you|who programmed you|who designed you)\s*$/i,
+
+            // Generic 'who are you' (to prevent identification)
+            /^(ඔයා කවුද|who are you)\s*$/i
+        ];
+        
+        // Keywords to check in the AI's response stream (both Sinhala and English, removed "Cerebras")
+        const filterKeywords = /(නිර්මාණය|හැදුවේ|කවුද හැදුවේ|සංවර්ධනය|AI|LLM|language model|නිර්මාතෘ|developed|created|built|programmed|model|LLM|Large Language)/i;
+
+        // English Refusal Message 
+        const refusalResponse = "I apologize, I am not authorized to disclose information about my creator.";
+
+        function shouldSendHardcodedResponse(prompt) {
+            const normalizedPrompt = prompt.toLowerCase().trim();
+            return creatorQuestionRegex.some(regex => regex.test(normalizedPrompt));
+        }
+
+        // =========================================================================
+        // UI/Sidebar Functions
+        // =========================================================================
+
+        function openSidebar() {
+            sidebar.classList.add('open');
+            overlay.classList.add('active');
+        }
+
+        function closeSidebar() {
+            sidebar.classList.remove('open');
+            overlay.classList.remove('active');
+        }
+
+        function handleMessageCopy(event) {
+            const messageElement = event.currentTarget;
+            const textToCopy = messageElement.textContent;
+            
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                messageElement.classList.add('copied');
+                setTimeout(() => {
+                    messageElement.classList.remove('copied');
+                }, 1000);
+            }).catch(err => {
+                console.error('Copying failed:', err);
+            });
+        }
+
+        // Message Animation
+        function addMessageToUI(text, sender) {
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('message', sender);
+            messageElement.textContent = text;
+            
+            messageElement.addEventListener('click', handleMessageCopy);
+            
+            const delay = chatMessages.children.length * 0.05; 
+            messageElement.style.animationDelay = `${delay}s`;
+
+            chatMessages.appendChild(messageElement);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            return messageElement;
+        }
+
+        function startChatSession() {
+            if (!chatStarted) {
+                initialMessage.classList.add('hidden');
+                chatStarted = true;
+            }
+        }
+
+        // New Chat Functionality
+        function startNewChat() {
+            chatMessages.innerHTML = ''; 
+            conversationHistory = [{ role: "system", content: "You are a helpful AI assistant speaking in English. Never mention who created you or any technical model names (LLM, Large Language, etc.) in your answer. Keep your answers brief." }];
+            initialMessage.classList.remove('hidden');
+            chatStarted = false;
+            closeSidebar();
+            messageInput.value = '';
+            messageInput.focus();
+        }
+
+        // =========================================================================
+        // Main Bot Response Handler (Handles Secrecy vs. API Call)
+        // =========================================================================
+        async function getBotResponse(userPrompt) {
+            
+            // 1. Check for Hardcoded Creator Question (Secrecy trigger)
+            if (shouldSendHardcodedResponse(userPrompt)) {
+                
+                addMessageToUI(refusalResponse, 'bot');
+                messageInput.disabled = false;
+                sendButton.disabled = false;
+                messageInput.focus();
+                return; 
+            }
+
+            // ----------------------------------------------------
+            // If it's NOT a hardcoded phrase, proceed to actual API call
+            // ----------------------------------------------------
+            
+            conversationHistory.push({ role: "user", content: userPrompt });
+            sendButton.disabled = true;
+            messageInput.disabled = true;
+
+            const botMessageElement = addMessageToUI("", 'bot');
+            let fullResponse = "";
+            
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${CEREBRAS_API_KEY}` },
+                    body: JSON.stringify({ model: "zai-glm-4.6", stream: true, max_tokens: 4096, temperature: 0.7, top_p: 0.95, messages: conversationHistory })
+                });
+
+                if (!response.ok) { 
+                    throw new Error(`API Error: ${response.statusText}`); 
+                }
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let isFiltered = false;
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    
+                    const chunk = decoder.decode(value);
+                    const lines = chunk.split('\n').filter(line => line.trim() !== '');
+                    
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            const jsonStr = line.substring(6);
+                            if (jsonStr === '[DONE]') break;
+                            try {
+                                const parsed = JSON.parse(jsonStr);
+                                const content = parsed.choices[0]?.delta?.content || '';
+                                
+                                if (content) {
+                                    // 2. Filter the incoming content stream for creator keywords
+                                    if (filterKeywords.test(content) || filterKeywords.test(fullResponse + content)) {
+                                        isFiltered = true;
+                                        break; 
+                                    }
+                                    
+                                    fullResponse += content;
+                                    botMessageElement.textContent = fullResponse;
+                                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                                }
+                            } catch (e) { console.error('JSON parsing error:', jsonStr, e); }
+                        }
+                    }
+                    if (isFiltered) break;
+                }
+                
+                // Final Check after stream ends or breaks
+                if (isFiltered || filterKeywords.test(fullResponse)) {
+                    botMessageElement.textContent = refusalResponse;
+                    fullResponse = refusalResponse;
+                }
+
+            } catch (error) {
+                console.error("API connection error:", error);
+                botMessageElement.textContent = "Sorry, an error occurred while connecting to the AI. (Error connecting to API)";
+            } finally {
+                if (fullResponse && fullResponse !== "") { 
+                    conversationHistory.push({ role: "assistant", content: fullResponse }); 
+                }
+                sendButton.disabled = false;
+                messageInput.disabled = false;
+                messageInput.focus();
+            }
+        }
+
+        // =========================================================================
+        // Event Listeners
+        // =========================================================================
+        
+        chatForm.addEventListener('submit', function(event) {
+            event.preventDefault();
+            const userMessage = messageInput.value.trim();
+            if (userMessage) {
+                startChatSession(); 
+                addMessageToUI(userMessage, 'user');
+                messageInput.value = '';
+                getBotResponse(userMessage);
+            }
+        });
+        
+        openSidebarBtn.addEventListener('click', openSidebar);
+        closeSidebarBtn.addEventListener('click', closeSidebar);
+        overlay.addEventListener('click', closeSidebar);
+        newChatBtn.addEventListener('click', startNewChat);
+
+    </script>
+</body>
+</html>
